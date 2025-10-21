@@ -30,7 +30,7 @@ jobs:
       prerelease: ${{ steps.pick-prerelease.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         id: get_latest_release
@@ -42,7 +42,7 @@ jobs:
 
       - name: Generate trunkver
         id: trunkver
-        uses: crftd-tech/trunkver@ab47f5339878f5a7c0097e8f10e6eae13a0ba998 # v1.1.1
+        uses: crftd-tech/trunkver@d0490489c86c5475a3e271d97c05fa928e3a8cd1 # 1.1.2
         with:
           baseVersion: ${{ fromJson(steps.get_latest_release.outputs.data).tag_name }}
           prerelease: "true"
@@ -70,11 +70,11 @@ jobs:
     needs: [generate-version]
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - name: Setup Go
-        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
-          go-version: 1.24
+          go-version: 1.25
       - name: Build trunkver
         env:
           VERSION: ${{ needs.generate-version.outputs.version }}
@@ -94,7 +94,7 @@ jobs:
       digest: ${{ steps.docker-build.outputs.digest }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - name: Setup cosign
         uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
         with:
@@ -117,9 +117,9 @@ jobs:
           grep syft_1.32.0_linux_amd64.tar.gz syft_1.32.0_checksums.txt | sha256sum --check
           tar -zxv -C /usr/local/bin/ -f syft_1.32.0_linux_amd64.tar.gz
       - name: Setup Go
-        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
-          go-version: 1.24
+          go-version: 1.25
       - name: Build trunkver
         env:
           VERSION: ${{ needs.generate-version.outputs.version }}
@@ -130,16 +130,24 @@ jobs:
             make build sign "VERSION=${VERSION}"
           )
       - name: Create release
-        id: release
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2
         with:
           name: ${{ needs.generate-version.outputs.version }}
           tag_name: ${{ needs.generate-version.outputs.version }}
+          draft: true
           prerelease: ${{ needs.generate-version.outputs.prerelease }}
           files: |
             dist/*
+      - name: Finalize release
+        id: release
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2
+        with:
+          name: ${{ needs.generate-version.outputs.version }}
+          tag_name: ${{ needs.generate-version.outputs.version }}
+          draft: false
+          prerelease: ${{ needs.generate-version.outputs.prerelease }}
       - name: Log in to the Container registry
-        uses: docker/login-action@bdf14dc17331d6af6f3653e7ca655ee4a136baa5
+        uses: docker/login-action@28fdb31ff34708d19615a74d67103ddc2ea9725c
         with:
           registry: "ghcr.io"
           username: ${{ github.actor }}
@@ -155,7 +163,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@cb8fc7586f9ad9441b20c33e0f6e8b1b58d8b4c6
+        uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
         id: docker-build
         with:
           context: .
@@ -195,7 +203,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - name: Update the action.yml with the new image tag
         run: |
           git pull origin --ff-only
