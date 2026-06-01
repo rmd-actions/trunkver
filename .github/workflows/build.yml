@@ -16,11 +16,6 @@ on:
       - "README.md"
       - "website/**"
 
-permissions:
-  packages: write
-  contents: write
-  id-token: write
-  attestations: write
 
 jobs:
   generate-version:
@@ -74,7 +69,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
-          go-version: 1.25
+          go-version: 1.26
       - name: Build trunkver
         env:
           VERSION: ${{ needs.generate-version.outputs.version }}
@@ -89,6 +84,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [generate-version, test]
     if: github.ref == 'refs/heads/main'
+    permissions:
+      packages: write
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     outputs:
       imageid: ${{ steps.docker-build.outputs.imageid }}
       digest: ${{ steps.docker-build.outputs.digest }}
@@ -119,7 +120,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
-          go-version: 1.25
+          go-version: 1.26
       - name: Build trunkver
         env:
           VERSION: ${{ needs.generate-version.outputs.version }}
@@ -154,6 +155,10 @@ jobs:
             type=raw,value=${{ needs.generate-version.outputs.version }}
             type=raw,value=latest
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
       - name: Build and push Docker image
         uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
         id: docker-build
@@ -161,6 +166,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          provenance: mode=max
           build-args: |
             VERSION=${{ needs.generate-version.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
